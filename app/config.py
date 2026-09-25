@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,10 +8,11 @@ ROOT = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT / '.env', extra='ignore')
 
-    host: str = '127.0.0.1'
-    port: int = 8000
+    # CRITICAL FOR RENDER: Bind to 0.0.0.0 and use the host's PORT
+    host: str = os.getenv('HOST', '0.0.0.0')
+    port: int = int(os.getenv('PORT', 8000))
 
-    # Generic LLM Configuration (Works for OpenRouter)
+    # Generic LLM Configuration
     model_provider: str = 'mistral'
     model_name: str = 'labs-leanstral-1-5'
     llm_api_key: str = ''
