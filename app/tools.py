@@ -5,7 +5,7 @@ import asyncio
 import time
 import logging
 from typing import Any
-
+from app.config import settings
 from app.models import Fault
 
 log = logging.getLogger('tools')
@@ -30,8 +30,9 @@ async def execute_tool(
 
     # --- Fault injection layer (Arena controls this) ---
     if fault.type == 'tool_timeout' and attempt == 1:
-        log.warning('FAULT INJECTED: tool_timeout on %s', tool_name)
-        await asyncio.sleep(45)  # exceeds run_timeout_seconds
+        log.warning('FAULT INJECTED: tool_timeout on %s - sleeping beyond global timeout', tool_name)
+        # Sleep longer than run_timeout + max retries to guarantee outer timeout catches it
+        await asyncio.sleep(settings.run_timeout_seconds + (settings.max_tool_retries * 10) + 5)
         return {'status': 'timeout', 'error': 'Tool timed out'}
 
     if fault.type == 'malformed_tool_output' and attempt == 1:

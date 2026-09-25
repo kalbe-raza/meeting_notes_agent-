@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 from typing import Optional
 
@@ -23,26 +24,54 @@ from app.tools import TOOL_REGISTRY, execute_tool
 
 log = logging.getLogger('agent')
 
+def _extract_json(text: str) -> str:
+    """Bulletproof JSON extractor for smaller models."""
+    # 1. Try to find JSON inside markdown fences ```json ... ```
+    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if match:
+        return match.group(1)
+
+    # 2. Try to find raw JSON object boundaries
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end > start:
+        return text[start:end + 1]
+
+    # 3. Fallback to raw text (will trigger Pydantic validation error and retry)
+    return text
 # Lazy LLM initialization
 _llm = None
-
+def _extract_json(text: str) -> str:
+    """Robustly extract a JSON object from model output (handles fences + preamble)."""
+    if '```' in text:
+        for part in text.split('```'):
+            candidate = part.strip()
+            if candidate.startswith('json'):
+                candidate = candidate[4:].strip()
+            if candidate.startswith('{'):
+                text = candidate
+                break
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end > start:
+        return text[start:end + 1]
+    return text
 
 def _get_llm(model: str = ''):
     global _llm
     if _llm is None:
         from langchain_openai import ChatOpenAI
 
-        # We use ChatOpenAI because OpenRouter is OpenAI-compatible
+        if not settings.llm_api_key:
+            raise ValueError("LLM_API_KEY is missing in .env!")
+
         _llm = ChatOpenAI(
             model=model or settings.model_name,
             temperature=0,
+            top_p=1,  # <-- ADD THIS LINE for Mistral compatibility
             max_tokens=settings.max_output_tokens,
-            api_key=settings.openrouter_api_key,  # Your OpenRouter Key
-            base_url=settings.llm_base_url,       # Points to OpenRouter, NOT OpenAI
-            default_headers={
-                "HTTP-Referer": "http://localhost:8000",
-                "X-Title": "MeetingNotesAgent"
-            }
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
         )
     return _llm
 
@@ -95,8 +124,8 @@ async def run_agent(
 
     # Add conversation history for multi-turn
     if history:
-        history_context = '\n'.join(
-            f"[{h['role']}]: {h['content'][:500]}" for h in history[-6:]
+            history_context = "Previous turns in this session:\n" + '\n'.join(
+                f"- {h['role'].upper()}: {h['content'][:500]}" for h in history[-6:]
         )
     else:
         history_context = ''
@@ -142,7 +171,9 @@ async def run_agent(
             'status': decision.status,
             'action': decision.action,
         })
-
+        if decision.status == 'completed' and decision.action:
+                    log.warning('Model returned completed with an action. Forcing status to continue.')
+                    decision.status = 'continue'
         # 2. Handle terminal statuses
         if decision.status == 'needs_clarification':
             msg = decision.user_message or 'Please provide more details (assignee and/or due date).'
@@ -307,13 +338,7 @@ async def _get_decision(messages: list, model: str, errors: list) -> Optional[Ag
     for retry in range(settings.max_tool_retries + 1):  # max 3 attempts
         try:
             response = llm.invoke(messages)
-            raw_text = response.content.strip()
-
-            # Strip markdown code fences if present
-            if raw_text.startswith('```'):
-                lines = raw_text.split('\n')
-                raw_text = '\n'.join(lines[1:-1] if lines[-1].strip() == '```' else lines[1:])
-
+            raw_text = _extract_json(response.content)
             parsed = json.loads(raw_text)
             decision = AgentDecision.model_validate(parsed)
             return decision

@@ -10,17 +10,17 @@ class Settings(BaseSettings):
     host: str = '127.0.0.1'
     port: int = 8000
 
-    # Model configuration
-    model_provider: str = 'openrouter'
-    model_name: str = 'nvidia/nemotron-3-super-120b-a12b:free'
-    openrouter_api_key: str = ''  # Changed from openai_api_key
-    llm_base_url: str = 'https://openrouter.ai/api/v1'
+    # Generic LLM Configuration (Works for OpenRouter)
+    model_provider: str = 'mistral'
+    model_name: str = 'labs-leanstral-1-5'
+    llm_api_key: str = ''
+    llm_base_url: str = 'https://api.mistral.ai/v1'
 
     # Agent limits
     max_steps: int = Field(default=6, ge=1, le=6)
     max_tool_retries: int = Field(default=2, ge=0, le=2)
     max_output_tokens: int = Field(default=512, ge=1)
     run_timeout_seconds: float = Field(default=40, gt=0, le=40)
-    max_history_messages: int = Field(default=10, ge=2, le=20)
+    max_history_messages: int = Field(default=12, ge=2, le=20)
 
 settings = Settings()
