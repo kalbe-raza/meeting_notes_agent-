@@ -45,7 +45,7 @@ All decisions must pass through a typed Pydantic contract (`AgentDecision`) befo
 
 ## 5. Architecture & Folder Structure
 ```text
-i221104/
+i220794/
 ├── app/
 │   ├── main.py        # FastAPI application entry point
 │   ├── api.py         # Endpoint definitions (/health, /arena/run, /chat)
