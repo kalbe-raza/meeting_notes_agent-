@@ -1,4 +1,23 @@
 {
-  "note": "Replace with safe data for your domain. Do not use real customer records.",
-  "records": []
+  "note": "Safe synthetic meeting notes for testing. No real customer records used.",
+  "records": [
+    {
+      "id": "sample-note-001",
+      "title": "Q4 Product Launch Sync",
+      "date": "2026-10-01",
+      "content": "Team discussed the upcoming product launch. Sarah agreed to finalize the marketing copy by October 15th. Mike will prepare the demo environment for the press event on October 20th. Action item: Design team needs to deliver updated mockups - assignee TBD, deadline unclear."
+    },
+    {
+      "id": "sample-note-002",
+      "title": "Engineering Standup",
+      "date": "2026-10-03",
+      "content": "Backend API migration is 80% complete. Frontend integration testing scheduled for next week. Blocker: Need DevOps approval for staging server access. John volunteered to follow up with infrastructure team."
+    },
+    {
+      "id": "sample-note-003",
+      "title": "Client Feedback Review",
+      "date": "2026-10-04",
+      "content": "Reviewed feedback from beta testers. Three critical bugs identified in payment flow. Priority fix assigned to QA team. Follow-up meeting planned for October 10th to verify fixes."
+    }
+  ]
 }
